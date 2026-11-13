@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIH Presentation | Urban Bus Route Clustering</title>
+  <link rel="stylesheet" href="slides.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="badge">SMART INDIA HACKATHON</span>
+      <span class="app-title">Urban Bus Route Clustering System</span>
+    </div>
+    <div class="controls">
+      <a href="../dashboard/index.html" class="btn-action" title="Open Live GIS Transit Dashboard">
+        <i class="fa-solid fa-map-location-dot"></i> Live GIS Dashboard
+      </a>
+      <a href="/api/download/zip" download="urban_transit_clustering_SIH_Project.zip" class="btn-action" style="background: linear-gradient(135deg, #059669, #10b981);" title="Download Project Zip Archive">
+        <i class="fa-solid fa-file-zipper"></i> Download ZIP
+      </a>
+      <a href="../SIH_Urban_Transit_Clustering_Presentation.pptx" download class="btn-action" style="background: linear-gradient(135deg, #d97706, #f59e0b);" title="Download PowerPoint Deck">
+        <i class="fa-solid fa-file-powerpoint"></i> Download PPTX
+      </a>
+      <button id="btn-theme" class="btn-icon" title="Toggle Theme (T)"><i class="fa-solid fa-moon"></i></button>
+      <button id="btn-grid" class="btn-icon" title="Slide Overview (G)"><i class="fa-solid fa-grip"></i></button>
+      <button id="btn-notes" class="btn-icon" title="Speaker Notes (N)"><i class="fa-solid fa-note-sticky"></i></button>
+      <button id="btn-fullscreen" class="btn-icon" title="Fullscreen (F)"><i class="fa-solid fa-expand"></i></button>
+    </div>
+  </header>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div id="progress-bar" class="progress-bar"></div>
+  </div>
+
+  <!-- Workspace -->
+  <main class="presentation-workspace">
+    <div class="slide-stage" id="slide-stage">
+
+      <!-- Slide 1: Title -->
+      <div class="slide active title-slide" data-slide="1" data-notes="Welcome respected jury members. Today we present an end-to-end unsupervised learning system for discovering latent urban bus operational regimes without requiring supervised labels, translating telemetry into targeted municipal interventions.">
+        <span class="badge" style="font-size: 13px; padding: 6px 16px; margin-bottom: 8px;">SMART INDIA HACKATHON 2024 / 2025</span>
+        <h1 class="hero-title">Unsupervised Clustering of Urban Bus Routes<br>Using Traffic Patterns</h1>
+        <p class="hero-subtitle">Mathematical Framework for Discovering Latent Operational Regimes, Mitigating Bus Bunching, and Deploying Precision Municipal Transit Interventions</p>
+        
+        <div class="grid-4" style="max-width: 900px; width: 100%; margin-top: 10px;">
+          <div class="stat-box">
+            <div class="stat-val">1,200+</div>
+            <div class="stat-lbl">Transit Observations</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">20.21</div>
+            <div class="stat-lbl">Manhattan Contrast</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">80.3%</div>
+            <div class="stat-lbl">PCA Top-2 Variance</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">0.892</div>
+            <div class="stat-lbl">Bootstrap ARI Stability</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2: The Challenge -->
+      <div class="slide" data-slide="2" data-notes="Metropolitan transit agencies still use static timetables. Traffic variability and passenger surges trigger bus bunching. Supervised learning fails here because ground-truth labels do not exist for congestion types. Unsupervised learning is mathematically mandatory.">
+        <div class="slide-header">
+          <h2>The Challenge: Urban Transit Friction in Megacities</h2>
+          <p>Why Traditional Scheduling Fails Without Unsupervised Pattern Discovery</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> The Urban Mobility Breakdown</h3>
+            <ul>
+              <li><strong>Static Timetables vs. Dynamic Chaos</strong>: Fixed frequency dispatches fail under time-varying traffic friction and intersection chokepoints.</li>
+              <li><strong>Headway Collapse & Bus Bunching</strong>: Delay on a lead bus increases waiting passengers at next stops; boarding dwell balloons and following buses catch up.</li>
+              <li><strong>Severe Economic & Carbon Drain</strong>: Stop-and-go driving increases diesel consumption by 34% and drains electric bus battery state-of-charge.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-lightbulb text-cyan-400"></i> Why Unsupervised Learning is Mandatory</h3>
+            <ul>
+              <li><strong>No Objective Ground Truth</strong>: There is no supervised label for 'traffic pattern structure' or 'corridor congestion type'.</li>
+              <li><strong>Manual Labeling Bias</strong>: Hand-labeling routes introduces severe human bias and misses cross-corridor operational correlations.</li>
+              <li><strong>Mathematical Objective</strong>: Uncover latent operational regimes naturally from raw GPS/AVL telemetry without prior assumptions.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3: Unit I - Data Preprocessing -->
+      <div class="slide" data-slide="3" data-notes="Real GPS sensors suffer dropouts in urban canyons. Naive mean imputation distorts covariance. We use KNN imputation weighted by inverse Euclidean distance and standardize all numerical features to zero mean and unit variance.">
+        <div class="slide-header">
+          <h2>Unit I: Telemetry Preprocessing & Standardization</h2>
+          <p>Robust Missing Value Imputation and Multi-Dimensional Feature Scaling</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-satellite-dish text-cyan-400"></i> Sensor Loss & KNN Imputation</h3>
+            <p>Urban canyon GPS reflections cause telemetry dropouts (2.5% to 3.5% missing rate in dwell time and acceleration metrics).</p>
+            <div style="background: var(--bg-dark); padding: 12px; border-radius: 8px; margin: 10px 0; font-family: monospace; font-size: 11px;">
+              x_hat_j = Σ (w_k * x_kj) / Σ w_k<br>
+              where w_k = 1 / (||x - x_k||_2 + ε)
+            </div>
+            <p>Preserves multi-dimensional covariance between speed, delay, and boarding dwell without flattening variance.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-arrows-split-up-and-left text-emerald-400"></i> Numerical Standardization</h3>
+            <p>Raw transit variables span vastly disparate scales:</p>
+            <ul>
+              <li>Speed: 6.0 – 32.0 km/h</li>
+              <li>Congestion Index: 1.05 – 2.40</li>
+              <li>Headway Variance: 0.5 – 45.0 min²</li>
+            </ul>
+            <p style="margin-top: 8px;">Standardized to zero mean and unit variance via <strong>StandardScaler (z = (x - μ) / σ)</strong>, preventing distance metric distortion.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 4: Unit II - Feature Engineering -->
+      <div class="slide" data-slide="4" data-notes="We engineer 10 operational transit features capturing speed turbulence, delay, dwell ratio, headway irregularity, and acceleration noise to create a complete operational fingerprint.">
+        <div class="slide-header">
+          <h2>Unit II: Temporal & Movement Feature Engineering</h2>
+          <p>Extracting 10 Operational Transit Metrics from Raw Telemetry</p>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <h3><i class="fa-solid fa-gauge-high text-cyan-400"></i> Speed & Turbulence</h3>
+            <ul>
+              <li><strong>Mean Speed (v_bar)</strong>: Arterial velocity in km/h.</li>
+              <li><strong>Speed CV (σ_v / v_bar)</strong>: Velocity turbulence ratio.</li>
+              <li><strong>Movement Turbulence</strong>: σ_a * (1 + CV_v) combining driving shocks and speed variation.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-hourglass-half text-amber-400"></i> Dwell & Bunching</h3>
+            <ul>
+              <li><strong>Congestion Index (CI)</strong>: T_actual / T_freeflow.</li>
+              <li><strong>Stop Dwell Ratio (δ_dwell)</strong>: T_dwell / T_trip.</li>
+              <li><strong>Headway Irregularity</strong>: σ_headway / H_sched (direct proxy for bus bunching risk).</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-chart-line text-rose-400"></i> Operational Delay</h3>
+            <ul>
+              <li><strong>Acceleration Noise (σ_a)</strong>: Driving roughness in m/s².</li>
+              <li><strong>Peak Vulnerability</strong>: v_offpeak / v_peak.</li>
+              <li><strong>Schedule Delay</strong>: Net trip deviation in minutes.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 5: Unit II - Distance Metrics -->
+      <div class="slide" data-slide="5" data-notes="A core contribution is comparing Euclidean vs Manhattan distance. Manhattan yields 20.21 relative contrast vs 16.51 for Euclidean and proves far more robust against isolated traffic sensor spikes.">
+        <div class="slide-header">
+          <h2>Unit II: Similarity Geometries — Euclidean vs. Manhattan</h2>
+          <p>Mathematical Evaluation of Distance Metrics for High-Dimensional Telemetry</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-ruler-combined text-emerald-400"></i> Relative Distance Contrast</h3>
+            <p><strong>Contrast = (d_max - d_min) / d_min</strong></p>
+            <div style="display: flex; gap: 12px; margin: 12px 0;">
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-val" style="color: var(--amber);">16.51</div>
+                <div class="stat-lbl">Euclidean (L2)</div>
+              </div>
+              <div class="stat-box" style="flex: 1; border-color: var(--emerald);">
+                <div class="stat-val" style="color: var(--emerald);">20.21</div>
+                <div class="stat-lbl">Manhattan (L1)</div>
+              </div>
+            </div>
+            <ul>
+              <li><strong>Manhattan achieves +22.4% higher contrast</strong>, providing stronger separation between operational corridors.</li>
+              <li>Linear penalty in L1 prevents extreme sensor outliers from distorting cluster centroids.</li>
+            </ul>
+          </div>
+          <div class="slide-img-container">
+            <img src="../reports/distance_metric_comparison.png" alt="Distance Metric Comparison" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 6: Unit III - Clustering & Linkages -->
+      <div class="slide" data-slide="6" data-notes="We benchmark K-Means++ across k=2 to 8 and evaluate 4 hierarchical linkages. Average linkage is our champion with Cophenetic Correlation of 0.819, preserving pairwise geometries best.">
+        <div class="slide-header">
+          <h2>Unit III: Multi-Algorithm Clustering & Linkage Strategies</h2>
+          <p>K-Means++ Spectrum Sweep & Hierarchical Agglomerative Benchmarking</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-sitemap text-cyan-400"></i> Hierarchical Linkage Comparison (k=4)</h3>
+            <table style="width: 100%; font-size: 11px; margin-top: 8px; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid var(--border-card); color: var(--text-muted);">
+                <th style="text-align: left; padding: 4px;">Linkage</th>
+                <th style="padding: 4px;">Cophenetic Corr (c)</th>
+                <th style="padding: 4px;">Silhouette</th>
+                <th style="padding: 4px;">Behavior</th>
+              </tr>
+              <tr style="color: var(--emerald);">
+                <td style="padding: 4px; font-weight: bold;">Average</td>
+                <td style="text-align: center; font-weight: bold;">0.8190</td>
+                <td style="text-align: center;">0.3333</td>
+                <td>Champion (Preserves geometry)</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px;">Ward</td>
+                <td style="text-align: center;">0.7621</td>
+                <td style="text-align: center;">0.3202</td>
+                <td>Compact, equal variance</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px;">Complete</td>
+                <td style="text-align: center;">0.6685</td>
+                <td style="text-align: center;">0.2121</td>
+                <td>Max diameter bounds</td>
+              </tr>
+              <tr style="color: var(--coral);">
+                <td style="padding: 4px;">Single</td>
+                <td style="text-align: center;">0.7654</td>
+                <td style="text-align: center;">-0.0329</td>
+                <td>Severe Chaining Pathology</td>
+              </tr>
+            </table>
+          </div>
+          <div class="slide-img-container">
+            <img src="../reports/hierarchical_dendrogram_and_linkages.png" alt="Hierarchical Dendrogram" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 7: Unit IV - PCA Scree & Biplot -->
+      <div class="slide" data-slide="7" data-notes="PCA captures 80.3% variance in top 2 components. PC1 represents Traffic Friction and PC2 represents Operational Delay. This gives transit engineers a clear 2D diagnostic biplot.">
+        <div class="slide-header">
+          <h2>Unit IV: Dimensionality Reduction via PCA</h2>
+          <p>Scree Eigenvalue Decomposition and Factor Loadings Biplot</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-chart-pie text-cyan-400"></i> Variance Decomposition</h3>
+            <div style="display: flex; gap: 10px; margin: 10px 0;">
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-val">64.8%</div>
+                <div class="stat-lbl">PC1 Variance</div>
+              </div>
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-val">15.5%</div>
+                <div class="stat-lbl">PC2 Variance</div>
+              </div>
+              <div class="stat-box" style="flex: 1; border-color: var(--cyan);">
+                <div class="stat-val">80.3%</div>
+                <div class="stat-lbl">Top-2 Cumulative</div>
+              </div>
+            </div>
+            <ul>
+              <li><strong>PC1 (Traffic Friction)</strong>: Driven by Dwell Ratio (+0.412), Acceleration Noise (+0.388), Turbulence (+0.395).</li>
+              <li><strong>PC2 (Operational Delay)</strong>: Driven by Congestion Index (+0.461), Peak Vulnerability (+0.428).</li>
+            </ul>
+          </div>
+          <div class="slide-img-container">
+            <img src="../reports/pca_traffic_clusters_biplot.png" alt="PCA Biplot" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 8: Unit V - Validation & Stability -->
+      <div class="slide" data-slide="8" data-notes="We prove mathematical validity through a 40-fold bootstrap perturbation test, achieving an ARI of 0.892. This confirms our discovered clusters are stable physical regimes, not random noise.">
+        <div class="slide-header">
+          <h2>Unit V: Cluster Quality & Stability Validation</h2>
+          <p>Internal Quality Metrics and 40-Fold Bootstrap Resampling Verification</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-shield-halved text-cyan-400"></i> Rigorous Quality Indices</h3>
+            <ul>
+              <li><strong>Silhouette Score</strong>: 0.4557 at k=2; 0.2599 at k=4 (validating strong operational boundaries).</li>
+              <li><strong>Davies–Bouldin Index</strong>: 0.8736 at k=2; 1.4155 at k=4 (low intra-cluster scatter to centroid distance).</li>
+              <li><strong>Calinski–Harabasz Index</strong>: 41.14 (high between-cluster dispersion).</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--emerald);">
+            <h3><i class="fa-solid fa-vial-circle-check text-emerald-400"></i> 40-Fold Bootstrap Perturbation Test</h3>
+            <p>Subsampled 85% of routes over 40 independent iterations to measure label stability:</p>
+            <div style="display: flex; gap: 10px; margin: 12px 0;">
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-val" style="color: var(--emerald);">0.892</div>
+                <div class="stat-lbl">Adjusted Rand Index (ARI)</div>
+              </div>
+              <div class="stat-box" style="flex: 1;">
+                <div class="stat-val" style="color: var(--cyan);">0.923</div>
+                <div class="stat-lbl">Norm. Mutual Info (NMI)</div>
+              </div>
+            </div>
+            <p style="font-size: 11px; color: var(--emerald); font-weight: 600;"><i class="fa-solid fa-check"></i> Verdict: Highly Stable & Robust (>0.75 ARI standard).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 9: Discovered Archetypes -->
+      <div class="slide" data-slide="9" data-notes="Here are the 4 discovered traffic archetypes: Radial Express Corridors, Suburban Metro Feeders, Congested Urban Cores, and Historic Commercial Belts.">
+        <div class="slide-header">
+          <h2>Discovered Traffic Archetypes & Route Profiles</h2>
+          <p>Interpreting Latent Operational Signatures Across the Urban Network</p>
+        </div>
+        <div class="grid-4">
+          <div class="card" style="border-top: 3px solid #10b981;">
+            <h3 style="color: #10b981;">Radial Express (C2)</h3>
+            <p><strong>28.3% of routes (17)</strong></p>
+            <ul>
+              <li>Speed: 23.9 km/h</li>
+              <li>Dwell Ratio: 20.7%</li>
+              <li>Congestion: 1.53</li>
+              <li>Low turbulence, high arterial velocity.</li>
+            </ul>
+          </div>
+          <div class="card" style="border-top: 3px solid #3b82f6;">
+            <h3 style="color: #3b82f6;">Suburban Feeder (C0)</h3>
+            <p><strong>21.7% of routes (13)</strong></p>
+            <ul>
+              <li>Speed: 19.8 km/h</li>
+              <li>Dwell Ratio: 24.8%</li>
+              <li>Congestion: 1.73</li>
+              <li>Steady headways, reliable commuter connections.</li>
+            </ul>
+          </div>
+          <div class="card" style="border-top: 3px solid #ef4444;">
+            <h3 style="color: #ef4444;">Congested Core (C3)</h3>
+            <p><strong>28.3% of routes (17)</strong></p>
+            <ul>
+              <li>Speed: 9.4 km/h</li>
+              <li>Dwell Ratio: 46.8%</li>
+              <li>Congestion: 1.55</li>
+              <li>Severe intersection and chokepoint delays.</li>
+            </ul>
+          </div>
+          <div class="card" style="border-top: 3px solid #f59e0b;">
+            <h3 style="color: #f59e0b;">Historic / Bazaar (C1)</h3>
+            <p><strong>21.7% of routes (13)</strong></p>
+            <ul>
+              <li>Speed: 7.6 km/h</li>
+              <li>Dwell Ratio: 52.8%</li>
+              <li>Congestion: 1.68</li>
+              <li>Extreme stop-and-go acceleration shocks.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 10: Policy Actions -->
+      <div class="slide" data-slide="10" data-notes="Clusters directly map to actionable policy: allocating electric buses to smooth arterial corridors, synchronizing feeders with metro trains, and placing dedicated bus lanes on congested cores.">
+        <div class="slide-header">
+          <h2>Actionable Policy Interventions & Municipal ROI</h2>
+          <p>Transforming Analytical Clusters into High-Impact City Interventions</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3><i class="fa-solid fa-bolt text-emerald-400"></i> Electric Bus (EV) Fleet Allocation</h3>
+            <p>Deploy EV fleets to <strong>Radial Express Arterials (C2)</strong>. Uniform cruise speeds maximize regenerative braking and preserve battery State-of-Charge (SoC), preventing premature battery degradation.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-traffic-light text-rose-400"></i> Transit Signal Priority (TSP) & Bus Lanes</h3>
+            <p>Demarcate Dedicated Bus Lanes and inductive TSP green-extension loops along <strong>Congested Urban Core (C3)</strong> corridors, reducing commuter passenger delay by up to 28%.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-train-subway text-blue-400"></i> Metro Rail Headway Synchronization</h3>
+            <p>Align <strong>Suburban Feeder (C0)</strong> dispatch headways with adjacent Metro rail arrival waves to slash intermodal transfer wait times.</p>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-van-shuttle text-amber-400"></i> Stop Consolidation & Mini-Bus Rightsizing</h3>
+            <p>Enforce curbside parking bans, merge closely spaced stops, and deploy 9m mini-buses on <strong>High-Friction Historic Belts (C1)</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 11: Conclusion -->
+      <div class="slide" data-slide="11" data-notes="In conclusion, we have built a complete, validated, production-grade system with zero new hardware required. Thank you, and we welcome your questions!">
+        <div class="slide-header">
+          <h2>Conclusion & SIH Hackathon Deliverables</h2>
+          <p>Production-Ready Intelligent Transit Analytics Suite</p>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <h3><i class="fa-solid fa-code text-cyan-400"></i> Modular Codebase</h3>
+            <ul>
+              <li>Pure Python 3.10+ architecture</li>
+              <li>8 automated unit tests (100% pass)</li>
+              <li>Static GTFS feed ingester</li>
+              <li>CLI pipeline runner (`main.py`)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-desktop text-emerald-400"></i> Production Web Suite</h3>
+            <ul>
+              <li>Leaflet GIS interactive transit map</li>
+              <li>Interactive PCA scatter biplot</li>
+              <li>What-If route simulator</li>
+              <li>Flask REST API microservice</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><i class="fa-solid fa-award text-amber-400"></i> SIH Evaluation Ready</h3>
+            <ul>
+              <li>Comprehensive technical report</li>
+              <li>11-slide PowerPoint deck (`.pptx`)</li>
+              <li>Mathematical stability verified (0.892 ARI)</li>
+              <li>Direct deployment for DTC/BMTC</li>
+            </ul>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="../dashboard/index.html" class="btn-action" style="display: inline-flex; font-size: 14px; padding: 10px 24px;">
+            <i class="fa-solid fa-play"></i> Launch Interactive System Demonstration
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <footer class="bottom-bar">
+    <div class="slide-counter" id="slide-counter">1 / 11</div>
+    <div class="nav-buttons">
+      <button id="btn-prev" class="btn-nav" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
+      <button id="btn-next" class="btn-nav">Next <i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  </footer>
+
+  <!-- Speaker Notes Drawer -->
+  <div class="notes-drawer" id="notes-drawer">
+    <div class="notes-header">
+      <h4><i class="fa-solid fa-clipboard text-cyan"></i> Speaker Notes & Jury Talking Points (Press 'N' to toggle)</h4>
+      <button id="btn-close-notes" class="btn-icon" style="padding: 4px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="notes-content" id="notes-content">
+      Welcome respected jury members.
+    </div>
+  </div>
+
+  <!-- Slide Overview Grid Modal -->
+  <div class="grid-modal" id="grid-modal">
+    <div class="grid-modal-header">
+      <h3 style="font-size: 18px; font-weight: 700; color: #fff;">Slide Deck Overview (Press 'G' or 'Esc' to exit)</h3>
+      <button id="btn-close-grid" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="grid-thumbnails" id="grid-thumbnails"></div>
+  </div>
+
+  <script src="slides.js"></script>
+</body>
+</html>
+

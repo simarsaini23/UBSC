@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urban Bus Route Clustering | Smart India Hackathon</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#0F172A',
+              card: '#1E293B',
+              border: '#334155',
+              teal: '#0D9488',
+              cyan: '#06B6D4',
+              accent: '#3B82F6',
+              warning: '#F59E0B',
+              danger: '#EF4444',
+              success: '#10B981'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #0F172A; color: #F8FAFC; font-family: system-ui, -apple-system, sans-serif; }
+    #map { height: 500px; width: 100%; border-radius: 0.75rem; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #1E293B; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    .leaflet-popup-content-wrapper { background: #1E293B; color: #F8FAFC; border: 1px solid #334155; }
+    .leaflet-popup-tip { background: #1E293B; }
+    .leaflet-control-layers { background: #1E293B !important; color: #F8FAFC !important; border: 1px solid #334155 !important; border-radius: 8px !important; }
+    .leaflet-control-layers-expanded { padding: 8px 12px !important; font-size: 11px !important; }
+    .leaflet-control-layers-base label { margin-bottom: 4px; cursor: pointer; }
+  </style>
+</head>
+<body class="min-h-screen custom-scroll flex flex-col">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-brand-card/90 backdrop-blur border-b border-brand-border sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-teal to-brand-cyan flex items-center justify-center text-white shadow-lg shadow-brand-teal/30">
+          <i class="fa-solid fa-bus text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Urban Bus Route Clustering
+            <span class="text-xs bg-brand-teal/20 text-brand-cyan px-2.5 py-0.5 rounded-full border border-brand-teal/40 font-medium">SIH Grade</span>
+          </h1>
+          <p class="text-xs text-slate-400">Unsupervised Traffic Pattern Discovery & Municipal Transit Optimization</p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center space-x-3">
+        <a href="../presentation/index.html" class="px-3.5 py-2 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan text-xs font-semibold border border-brand-cyan/50 flex items-center gap-2 transition">
+          <i class="fa-solid fa-chalkboard-user"></i> Slide Presentation
+        </a>
+        <a href="/api/download/zip" download="urban_transit_clustering_SIH_Project.zip" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow flex items-center gap-2 transition">
+          <i class="fa-solid fa-file-zipper"></i> Download Full Project (.zip)
+        </a>
+        <a href="/api/download/pptx" download class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-brand-border flex items-center gap-2 transition">
+          <i class="fa-solid fa-file-powerpoint text-amber-400"></i> Download PPTX Deck
+        </a>
+        <a href="/api/download/report" download class="px-3.5 py-2 rounded-lg bg-brand-teal/20 hover:bg-brand-teal/30 text-brand-cyan text-xs font-semibold border border-brand-teal/50 flex items-center gap-2 transition">
+          <i class="fa-solid fa-download"></i> Export JSON Artifacts
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metric Quick Ribbon -->
+  <section class="max-w-7xl mx-auto w-full px-6 pt-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-brand-card p-4 rounded-xl border border-brand-border shadow-sm">
+        <div class="text-xs text-slate-400 font-medium flex justify-between items-center">
+          <span>Analyzed Network</span>
+          <i class="fa-solid fa-route text-brand-cyan"></i>
+        </div>
+        <div class="text-2xl font-bold text-white mt-1" id="stat-routes">60 Routes</div>
+        <div class="text-xs text-slate-500 mt-1" id="stat-obs">1,200 Observations</div>
+      </div>
+
+      <div class="bg-brand-card p-4 rounded-xl border border-brand-border shadow-sm">
+        <div class="text-xs text-slate-400 font-medium flex justify-between items-center">
+          <span>Silhouette Quality</span>
+          <i class="fa-solid fa-chart-line text-emerald-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-emerald-400 mt-1" id="stat-silhouette">0.456</div>
+        <div class="text-xs text-slate-400 mt-1" id="stat-db">Davies-Bouldin: 0.87</div>
+      </div>
+
+      <div class="bg-brand-card p-4 rounded-xl border border-brand-border shadow-sm">
+        <div class="text-xs text-slate-400 font-medium flex justify-between items-center">
+          <span>PCA Variance Captured</span>
+          <i class="fa-solid fa-project-diagram text-brand-teal"></i>
+        </div>
+        <div class="text-2xl font-bold text-cyan-400 mt-1" id="stat-pca-var">80.3%</div>
+        <div class="text-xs text-slate-400 mt-1">Top 2 Principal Axes</div>
+      </div>
+
+      <div class="bg-brand-card p-4 rounded-xl border border-brand-border shadow-sm">
+        <div class="text-xs text-slate-400 font-medium flex justify-between items-center">
+          <span>Bootstrap Stability</span>
+          <i class="fa-solid fa-shield-halved text-brand-accent"></i>
+        </div>
+        <div class="text-2xl font-bold text-blue-400 mt-1" id="stat-stability">0.892 ARI</div>
+        <div class="text-xs text-emerald-400 mt-1"><i class="fa-solid fa-check"></i> Highly Robust</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Navigation Tabs -->
+  <div class="max-w-7xl mx-auto w-full px-6 mt-6">
+    <div class="flex border-b border-brand-border space-x-2 overflow-x-auto custom-scroll">
+      <button onclick="switchTab('map-tab')" id="tab-btn-map" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-brand-teal text-white flex items-center gap-2">
+        <i class="fa-solid fa-map-location-dot"></i> GIS Transit Network
+      </button>
+      <button onclick="switchTab('pca-tab')" id="tab-btn-pca" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-chart-scatter"></i> PCA & Biplot
+      </button>
+      <button onclick="switchTab('distance-tab')" id="tab-btn-distance" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-ruler-combined"></i> Distance Metrics (L1 vs L2)
+      </button>
+      <button onclick="switchTab('linkage-tab')" id="tab-btn-linkage" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-sitemap"></i> Linkage Comparison
+      </button>
+      <button onclick="switchTab('archetypes-tab')" id="tab-btn-archetypes" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-compass-drafting"></i> Radar DNA & Policies
+      </button>
+      <button onclick="switchTab('simulator-tab')" id="tab-btn-simulator" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-sliders"></i> What-If Route Simulator
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="max-w-7xl mx-auto w-full px-6 py-6 flex-1">
+
+    <!-- TAB 1: GIS Transit Network -->
+    <div id="map-tab" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left 2 Cols: Interactive Map -->
+        <div class="lg:col-span-2 bg-brand-card p-5 rounded-2xl border border-brand-border shadow-sm flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-map text-brand-teal"></i> Metropolitan Transit Corridor Map
+                <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono border border-emerald-500/40"><i class="fa-solid fa-lock-open mr-1"></i>No API Key Needed</span>
+              </h2>
+              <p class="text-xs text-slate-400">Routes color-coded by discovered operational cluster archetype (Powered by Free Leaflet & OpenStreetMap)</p>
+            </div>
+            
+            <!-- Cluster Legend Pills -->
+            <div class="flex items-center gap-2" id="cluster-filter-pills"></div>
+          </div>
+
+          <div id="map" class="flex-1"></div>
+        </div>
+
+        <!-- Right Col: Route Inspector & Archetype Summary -->
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border flex flex-col">
+          <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-microscope text-brand-cyan"></i> Route Inspector
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Click any route on the map or select from the list below</p>
+
+          <div class="mb-4">
+            <select id="route-selector" onchange="selectRoute(this.value)" class="w-full bg-slate-900 border border-brand-border text-slate-200 text-xs rounded-lg px-3 py-2.5 focus:outline-none focus:border-brand-teal">
+              <option value="">-- Choose a Bus Route --</option>
+            </select>
+          </div>
+
+          <div id="route-details" class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-brand-border/60 flex-1 flex flex-col justify-center text-center text-slate-400 text-xs">
+            <i class="fa-solid fa-location-crosshairs text-2xl text-slate-600 mb-2"></i>
+            Select a bus route to view its operational profile, telemetry metrics, and municipal policy recommendations.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PCA Dimensionality Reduction -->
+    <div id="pca-tab" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- PCA 2D Scatter -->
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-chart-scatter text-brand-cyan"></i> PCA 2D Operational Projection
+              </h3>
+              <p class="text-xs text-slate-400" id="pca-subtitle">PC1 (Impedance) vs PC2 (Regularity)</p>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas id="pcaChart"></canvas>
+          </div>
+        </div>
+
+        <!-- PCA Scree Plot -->
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-chart-bar text-brand-teal"></i> Scree Plot (Explained Variance)
+              </h3>
+              <p class="text-xs text-slate-400">Eigenvalue decomposition of standardized transit space</p>
+            </div>
+          </div>
+          <div class="h-80">
+            <canvas id="screeChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- PCA Factor Loadings Breakdown -->
+      <div class="bg-brand-card p-5 rounded-2xl border border-brand-border">
+        <h4 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-arrows-to-dot text-amber-400"></i> Factor Loadings: What Drives Each Dimension?
+        </h4>
+        <div id="loadings-table-container" class="overflow-x-auto custom-scroll"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Distance Metrics (Euclidean vs Manhattan) -->
+    <div id="distance-tab" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border flex flex-col">
+          <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-scale-balanced text-brand-cyan"></i> Distance Concentration & Contrast Comparison
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Empirical evaluation of Euclidean (L2) vs Manhattan (L1) on multi-dimensional telemetry</p>
+          <div class="h-72">
+            <canvas id="distanceBarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-book-bookmark text-emerald-400"></i> Mathematical Justification for Urban Transit
+            </h3>
+            <div id="distance-analysis-box" class="space-y-4 text-xs text-slate-300 mt-3 leading-relaxed"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Linkage Comparison -->
+    <div id="linkage-tab" class="tab-content hidden space-y-6">
+      <div class="bg-brand-card p-5 rounded-2xl border border-brand-border">
+        <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-sitemap text-brand-teal"></i> Hierarchical Linkage Benchmark (Ward, Complete, Average, Single)
+        </h3>
+        <p class="text-xs text-slate-400 mb-4">Evaluating dendrogram fidelity via Cophenetic Correlation and cluster separation via Silhouette</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="linkage-cards-grid"></div>
+      </div>
+
+      <div class="bg-brand-card p-5 rounded-2xl border border-brand-border">
+        <h4 class="text-sm font-bold text-white mb-3">Linkage Performance Comparison</h4>
+        <div class="h-72">
+          <canvas id="linkageChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: Cluster Radar DNA & Policy Archetypes -->
+    <div id="archetypes-tab" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border">
+          <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-hexagon-nodes text-brand-teal"></i> Operational DNA Radar Chart
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Comparative footprint across Speed, Congestion, Dwell, Headway, Accel Noise, and Delay</p>
+          <div class="h-80">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-brand-card p-5 rounded-2xl border border-brand-border flex flex-col justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-building-shield text-brand-cyan"></i> Actionable Municipal Interventions
+            </h3>
+            <div id="archetypes-list" class="space-y-3 custom-scroll max-h-96 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: What-If Route Simulator -->
+    <div id="simulator-tab" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Controls -->
+        <div class="bg-brand-card p-6 rounded-2xl border border-brand-border">
+          <h3 class="text-base font-bold text-white mb-1 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-brand-teal"></i> Real-Time Route Classifier & Policy Advisor
+          </h3>
+          <p class="text-xs text-slate-400 mb-6">Simulate a newly planned or monitored transit corridor to predict its operational archetype</p>
+
+          <form id="simulator-form" onsubmit="runSimulation(event)" class="space-y-4">
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>Average Speed (km/h)</span>
+                <span id="val-speed" class="font-bold text-brand-cyan">18.0 km/h</span>
+              </div>
+              <input type="range" id="sim-speed" min="5" max="35" step="0.5" value="18" oninput="updateSimValue('speed', this.value, ' km/h')" class="w-full accent-brand-teal">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>Congestion Index (Trip / Free-Flow)</span>
+                <span id="val-cong" class="font-bold text-brand-cyan">1.45</span>
+              </div>
+              <input type="range" id="sim-cong" min="1.0" max="2.6" step="0.05" value="1.45" oninput="updateSimValue('cong', this.value, '')" class="w-full accent-brand-teal">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>Stop Dwell Ratio (Stopped / Total Trip)</span>
+                <span id="val-dwell" class="font-bold text-brand-cyan">0.26</span>
+              </div>
+              <input type="range" id="sim-dwell" min="0.10" max="0.60" step="0.02" value="0.26" oninput="updateSimValue('dwell', this.value, '')" class="w-full accent-brand-teal">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>Acceleration Noise (m/s² - Stop & Go)</span>
+                <span id="val-accel" class="font-bold text-brand-cyan">1.10 m/s²</span>
+              </div>
+              <input type="range" id="sim-accel" min="0.3" max="2.4" step="0.05" value="1.10" oninput="updateSimValue('accel', this.value, ' m/s²')" class="w-full accent-brand-teal">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs text-slate-300 mb-1">
+                <span>Headway Irregularity Index</span>
+                <span id="val-headway" class="font-bold text-brand-cyan">0.30</span>
+              </div>
+              <input type="range" id="sim-headway" min="0.10" max="0.70" step="0.02" value="0.30" oninput="updateSimValue('headway', this.value, '')" class="w-full accent-brand-teal">
+            </div>
+
+            <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-teal to-brand-cyan text-white font-bold text-sm shadow-lg shadow-brand-teal/30 hover:opacity-95 transition">
+              <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Classify Route Operational Regime
+            </button>
+          </form>
+        </div>
+
+        <!-- Simulator Result -->
+        <div class="bg-brand-card p-6 rounded-2xl border border-brand-border flex flex-col justify-center">
+          <div id="sim-result" class="text-center p-6 bg-slate-900/60 rounded-xl border border-brand-border/60">
+            <div class="w-14 h-14 rounded-2xl bg-brand-teal/20 text-brand-cyan mx-auto flex items-center justify-center text-2xl mb-3">
+              <i class="fa-solid fa-microchip"></i>
+            </div>
+            <h4 class="text-base font-bold text-white mb-2">Awaiting Simulation Parameters</h4>
+            <p class="text-xs text-slate-400">Adjust the operational telemetry sliders on the left and click "Classify Route" to evaluate the route's behavior.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-brand-card border-t border-brand-border py-4 px-6 text-center text-xs text-slate-500">
+    Smart India Hackathon (SIH) | Intelligent Transit Analytics | Unsupervised Learning Pipeline v1.0
+  </footer>
+
+  <!-- Standalone & API script loader -->
+  <script src="dashboard_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
