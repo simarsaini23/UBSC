@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanFlow-AI | Bus Route Clustering & Traffic Pattern Analytics</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-bus-simple"></i></div>
+                <div class="brand-text">
+                    <h2>UrbanFlow<span>.AI</span></h2>
+                    <p>Transit Intelligence Engine</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="overview">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Overview & Data</span>
+                </button>
+                <button class="nav-item" data-tab="distance">
+                    <i class="fa-solid fa-ruler-combined"></i>
+                    <span>Distance & Prep</span>
+                </button>
+                <button class="nav-item" data-tab="clustering">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <span>Clustering & PCA</span>
+                </button>
+                <button class="nav-item" data-tab="validation">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Quality & Stability</span>
+                </button>
+                <button class="nav-item" data-tab="map-profiles">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <span>Spatial Map & Profiles</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sih-badge">
+                    <i class="fa-solid fa-award"></i>
+                    <span>SIH Level Solution</span>
+                </div>
+                <p class="copyright">Urban Bus Transit Analytics v2.5</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <main class="main-content">
+            <!-- Top App Bar -->
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1 id="current-tab-title">Transit Overview & Data Catalog</h1>
+                    <p id="current-tab-subtitle">Unsupervised clustering of urban bus routes using traffic patterns and temporal dynamics</p>
+                </div>
+
+                <div class="top-actions">
+                    <button class="btn btn-outline" id="btn-reseed">
+                        <i class="fa-solid fa-arrows-rotate"></i> Regenerate Dataset
+                    </button>
+                    <button class="btn btn-primary" id="btn-export">
+                        <i class="fa-solid fa-file-pdf"></i> Export Analytical Report
+                    </button>
+                </div>
+            </header>
+
+            <!-- Global Parameter Bar -->
+            <section class="control-panel glass-card">
+                <div class="panel-group">
+                    <label><i class="fa-solid fa-robot"></i> Algorithm</label>
+                    <select id="param-algorithm" class="form-select">
+                        <option value="kmeans" selected>K-Means Clustering</option>
+                        <option value="hierarchical">Hierarchical Agglomerative</option>
+                    </select>
+                </div>
+
+                <div class="panel-group">
+                    <label><i class="fa-solid fa-sliders"></i> Clusters (k): <span id="val-k">4</span></label>
+                    <input type="range" id="param-k" min="2" max="8" value="4" class="form-range">
+                </div>
+
+                <div class="panel-group" id="linkage-group">
+                    <label><i class="fa-solid fa-sitemap"></i> Linkage Strategy</label>
+                    <select id="param-linkage" class="form-select">
+                        <option value="ward" selected>Ward (Variance Min)</option>
+                        <option value="complete">Complete Linkage</option>
+                        <option value="average">Average Linkage</option>
+                        <option value="single">Single Linkage</option>
+                    </select>
+                </div>
+
+                <div class="panel-group">
+                    <label><i class="fa-solid fa-calculator"></i> Distance Metric</label>
+                    <select id="param-metric" class="form-select">
+                        <option value="euclidean" selected>Euclidean ($L_2$ Norm)</option>
+                        <option value="manhattan">Manhattan ($L_1$ Norm)</option>
+                    </select>
+                </div>
+
+                <div class="panel-group">
+                    <button class="btn btn-accent" id="btn-run-pipeline">
+                        <i class="fa-solid fa-play"></i> Run Analytics Pipeline
+                    </button>
+                </div>
+            </section>
+
+            <!-- KPI Metric Cards Row -->
+            <section class="kpi-grid">
+                <div class="kpi-card glass-card">
+                    <div class="kpi-icon icon-blue"><i class="fa-solid fa-bus"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-title">Total Routes & Segments</span>
+                        <h3 id="kpi-routes">160</h3>
+                        <span class="kpi-sub">Across 4 time windows</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-icon icon-amber"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-title">Missing Values Handled</span>
+                        <h3 id="kpi-missing">12 Imputed</h3>
+                        <span class="kpi-sub">KNN Imputer ($k=5$)</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-icon icon-green"><i class="fa-solid fa-bullseye"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-title">Silhouette Score</span>
+                        <h3 id="kpi-silhouette">0.428</h3>
+                        <span class="kpi-sub" id="kpi-sil-rating">Good Cluster Separation</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-icon icon-purple"><i class="fa-solid fa-layer-group"></i></div>
+                    <div class="kpi-info">
+                        <span class="kpi-title">Davies-Bouldin Index</span>
+                        <h3 id="kpi-dbi">0.865</h3>
+                        <span class="kpi-sub">Lower is Better</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 1: OVERVIEW & DATASET -->
+            <div class="tab-content active" id="tab-overview">
+                <div class="grid-2col">
+                    <!-- Data Preview Table -->
+                    <div class="glass-card card-full">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-table"></i> Transit Observation Dataset (Objective 1)</h3>
+                            <input type="text" id="table-search" placeholder="Search route ID or name..." class="search-input">
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="dataset-table">
+                                <thead>
+                                    <tr>
+                                        <th>Route ID</th>
+                                        <th>Route Name</th>
+                                        <th>Time Window</th>
+                                        <th>Length (km)</th>
+                                        <th>Speed (km/h)</th>
+                                        <th>Speed Var</th>
+                                        <th>Congestion</th>
+                                        <th>Stop Density</th>
+                                        <th>Dwell (s)</th>
+                                        <th>Delay Index</th>
+                                        <th>Reliability</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows loaded via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: DISTANCE & PREPROCESSING -->
+            <div class="tab-content" id="tab-distance">
+                <div class="grid-2col">
+                    <!-- Distance Comparison Card -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-ruler-combined"></i> Distance Suitability Evaluation (Objective 1)</h3>
+                        </div>
+                        <div class="distance-comparison-grid">
+                            <div class="metric-box box-blue">
+                                <h4>Euclidean Distance ($L_2$)</h4>
+                                <p class="metric-val" id="euc-contrast">Contrast: 0.384</p>
+                                <p>Silhouette: <strong id="euc-sil">0.428</strong></p>
+                                <p>Mean Distance: <span id="euc-mean">3.42</span></p>
+                            </div>
+                            <div class="metric-box box-amber">
+                                <h4>Manhattan Distance ($L_1$)</h4>
+                                <p class="metric-val" id="man-contrast">Contrast: 0.352</p>
+                                <p>Silhouette: <strong id="man-sil">0.395</strong></p>
+                                <p>Mean Distance: <span id="man-mean">9.14</span></p>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-banner" id="distance-rec-box">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <div>
+                                <h4>Distance Metric Recommendation</h4>
+                                <p id="distance-rec-text">Evaluating metric contrast ratio...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Distance Histogram Chart -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-bar"></i> Pairwise Distance Distribution Contrast</h3>
+                        </div>
+                        <div class="chart-box">
+                            <canvas id="chart-distance-dist"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CLUSTERING & PCA STUDIO -->
+            <div class="tab-content" id="tab-clustering">
+                <div class="grid-2col">
+                    <!-- Elbow & Silhouette Sweep Chart -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-line"></i> K-Means Inertia (Elbow) & Silhouette Sweep</h3>
+                        </div>
+                        <div class="chart-box">
+                            <canvas id="chart-kmeans-sweep"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 2D / 3D PCA Projection Scatter Plot -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-cube"></i> PCA Dimensionality Reduction Space (Objective 2)</h3>
+                            <div class="btn-group-sm">
+                                <button class="btn btn-sm btn-outline active" id="btn-pca-2d">2D Projection</button>
+                                <button class="btn btn-sm btn-outline" id="btn-pca-3d">3D Projection</button>
+                            </div>
+                        </div>
+                        <div id="plotly-pca-container" class="plotly-container"></div>
+                    </div>
+                </div>
+
+                <!-- Dendrogram View (Collapsible) -->
+                <div class="glass-card card-full margin-top-lg" id="dendrogram-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-sitemap"></i> Hierarchical Linkage Dendrogram Structure</h3>
+                    </div>
+                    <div class="chart-box-large">
+                        <canvas id="chart-dendrogram"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: QUALITY & STABILITY -->
+            <div class="tab-content" id="tab-validation">
+                <div class="grid-3col">
+                    <!-- Quality Breakdown -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-gauge-high"></i> Cluster Quality Metrics</h3>
+                        </div>
+                        <div class="quality-metrics-list">
+                            <div class="metric-row">
+                                <span>Silhouette Score ($S$)</span>
+                                <strong id="val-sil-score">0.428</strong>
+                            </div>
+                            <div class="metric-row">
+                                <span>Davies-Bouldin Index ($DBI$)</span>
+                                <strong id="val-dbi-score">0.865</strong>
+                            </div>
+                            <div class="metric-row">
+                                <span>Calinski-Harabasz Index</span>
+                                <strong id="val-chi-score">142.50</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cluster Stability Bootstrap -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-shield-halved"></i> Stability Analysis (Objective 3)</h3>
+                        </div>
+                        <div class="stability-box">
+                            <div class="gauge-value" id="val-stability-ari">0.842</div>
+                            <p class="gauge-label">Mean Adjusted Rand Index (ARI)</p>
+                            <span class="badge badge-success" id="val-stability-badge">Highly Stable</span>
+                            <p class="stability-sub">Evaluated over 15 bootstrap iterations with 80% subsampling perturbation.</p>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Benchmark Comparison Table -->
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-list-check"></i> Algorithm Configurations Benchmark</h3>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table" id="benchmark-table">
+                                <thead>
+                                    <tr>
+                                        <th>Config</th>
+                                        <th>k</th>
+                                        <th>Silhouette</th>
+                                        <th>DBI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: SPATIAL MAP & PROFILES -->
+            <div class="tab-content" id="tab-map-profiles">
+                <!-- Map Layer -->
+                <div class="glass-card card-full">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-map-location-dot"></i> Spatial Bus Route Network Map (Color by Cluster)</h3>
+                    </div>
+                    <div id="leaflet-map" class="leaflet-map-container"></div>
+                </div>
+
+                <!-- Operational Profile Cards -->
+                <div class="margin-top-lg">
+                    <h3 class="section-title"><i class="fa-solid fa-traffic-light"></i> Operational Traffic Pattern Profiles & Recommendations (Objective 3)</h3>
+                    <div class="profiles-grid" id="profiles-container">
+                        <!-- Dynamic Profile Cards -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal-backdrop" id="report-modal">
+        <div class="modal-card glass-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-lines"></i> Executive Analytical Report</h3>
+                <button class="btn-close" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <pre id="report-text-container"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-copy-report"><i class="fa-solid fa-copy"></i> Copy Markdown</button>
+                <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="js/charts.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
